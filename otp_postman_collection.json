@@ -1,0 +1,95 @@
+{
+	"info": {
+		"name": "E-Commerce OTP Verification API",
+		"_postman_id": "d82089b0-9bf7-42bc-be79-cc7e08928c0b",
+		"description": "Collection for testing E-Commerce OTP (One Time Password) send and verify endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Send OTP",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{email}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/send-otp",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"send-otp"
+					]
+				},
+				"description": "Sends a 6-digit OTP code to the specified email address if the email is not already registered."
+			},
+			"response": []
+		},
+		{
+			"name": "Verify OTP",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{email}}\",\n    \"code\": \"{{otp_code}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/verify-otp",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"verify-otp"
+					]
+				},
+				"description": "Verifies the 6-digit OTP code sent to the email address."
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api",
+			"type": "string"
+		},
+		{
+			"key": "email",
+			"value": "customer@example.com",
+			"type": "string"
+		},
+		{
+			"key": "otp_code",
+			"value": "123456",
+			"type": "string"
+		}
+	]
+}

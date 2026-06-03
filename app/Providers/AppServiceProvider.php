@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Providers;
+namespace App\Providers; 
 
+use App\Mail\Transport\BrevoTransport;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register custom Brevo synchronous driver
+        Mail::extend('brevo', function (array $config) {
+            return new BrevoTransport($config['key'] ?? env('BREVO_API_KEY'));
+        });
     }
 }
