@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('email_verification', function (Blueprint $table) {
+        Schema::create('email_verifications', function (Blueprint $table) {
             $table->id();
-            $table->string('email');
-            $table->string('code');
+            $table->string('email')->index();
+            $table->string('code', 6);  
             $table->timestamp('expires_at');
             $table->boolean('is_verified')->default(false);
             $table->timestamps();
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('email_verification');
+        Schema::dropIfExists('email_verifications');
     }
 };
