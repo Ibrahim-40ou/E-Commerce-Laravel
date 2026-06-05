@@ -7,43 +7,41 @@ use App\Models\EmailVerification;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Hash;
+
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    private function normalizeIraqiPhone(string $phone): string
+    {
+        if (str_starts_with($phone, '964')) {
+            $phone = substr($phone, 3);
+        }
+        if (str_starts_with($phone, '0')) {
+            $phone = substr($phone, 1);
+        }
+
+        return '964' . $phone;
+    }
+
     public function sendOTP(Request $request)
     {
-        // Checkpoint 1: Request received
-        Log::info('--- OTP SEND PROCESS START ---');
-        Log::info('Incoming Request Email: ' . $request->input('email'));
-
         $validated = $request->validate([
             'email' => 'required|email'
         ]);
 
         if (User::query()->where('email', $validated['email'])->exists()) {
-            Log::warning('OTP aborted: Email already registered: ' . $validated['email']);
             throw ValidationException::withMessages([
                 'email' => 'This email address is already registered with an account.'
             ]);
         }
 
         $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        Log::info('Generated OTP Code: ' . $code);
-
-        // Checkpoint 2: Inspecting active system configuration at runtime
-        Log::info('Runtime MAIL_MAILER: ' . config('mail.default'));
-        Log::info('Runtime MAIL_HOST: ' . config('mail.mailers.smtp.host'));
-        Log::info('Runtime MAIL_FROM: ' . config('mail.from.address'));
 
         try {
-            Log::info('Attempting network dispatch via Mail::to()...');
-            
             Mail::to($validated['email'])->send(new SendOTPMail($code));
-            
-            Log::info('Mail::send completed successfully without crashing.');
 
             EmailVerification::query()->updateOrCreate(
                 ['email' => $validated['email']],
@@ -51,18 +49,12 @@ class AuthController extends Controller
                     'code' => $code,
                     'expires_at' => now()->addMinutes(10),
                     'is_verified' => false,
+                    'attempts' => 0,
                 ]
             );
-            
-            Log::info('Database record updated/created successfully.');
-            Log::info('--- OTP SEND PROCESS END (SUCCESS) ---');
 
             return response()->json(['message' => 'Verification code has been sent to your email address'], 201);
         } catch (Exception $e) {
-            // Checkpoint 3: Catch any silent network/SMTP errors
-            Log::error('--- OTP SEND PROCESS FAILED ---');
-            Log::error('Error Message: ' . $e->getMessage());
-            Log::error('Error Trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'message' => 'Failed to deliver verification email. Please try again later.',
@@ -82,29 +74,117 @@ class AuthController extends Controller
             ->where('email', $validated['email'])
             ->first();
 
-
         if (!$verificationRecord) {
             return response()->json(['message' => 'No verification code found for this email address.'], 404);
         }
-
 
         if ($verificationRecord->is_verified) {
             return response()->json(['message' => 'This email address has already been verified.'], 400);
         }
 
-
         if (now()->isAfter($verificationRecord->expires_at)) {
             return response()->json(['message' => 'The verification code has expired. Please request a new one.'], 410);
         }
 
-
         if ($verificationRecord->code !== $validated['code']) {
+            $verificationRecord->increment('attempts', 1);
+
+            if ($verificationRecord->fresh()->attempts >= 5) {
+                EmailVerification::destroy($verificationRecord->id);
+                return response()->json(['message' => 'Too many failed attempts. Please request a new code.'], 429);
+            }
+
             return response()->json(['message' => 'Invalid verification code. Please try again.'], 422);
         }
 
-
         $verificationRecord->update(['is_verified' => true]);
+        $verificationRecord->update(['email_verified_at' => now()]);
 
         return response()->json(['message' => 'Email verified successfully. You can now proceed to registration.'], 200);
+    }
+
+    public function register(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email|max:254',
+            'phone_number' => [
+                'required',
+                'string',
+                'regex:/^(964|0)?7[5789]\d{8}$/',
+                'max:14'
+            ],
+            'password' => 'required|string|confirmed|min:8|max:128'
+        ]);
+
+        $emailVerified = EmailVerification::query()->where('email', $validated['email'])->where('is_verified', true)->first();
+
+        if (!$emailVerified) {
+            throw ValidationException::withMessages(
+                [
+                    'email' => 'This is not a verified email address. Please verify your email first.'
+                ]
+            );
+        }
+
+        $finalPhone = $this->normalizeIraqiPhone($validated['phone_number']);
+
+        if (User::query()->where('phone_number', $finalPhone)->exists()) {
+            throw ValidationException::withMessages(
+                [
+                    'phone_number' => 'This phone number is already registered'
+                ]
+            );
+        }
+
+        $user = User::query()->create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone_number' => $finalPhone,
+            'password' => Hash::make($validated['password']),
+            'email_verified_at' => $emailVerified['email_verified_at'],
+            'last_login_at' => now(),
+        ]);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        EmailVerification::destroy($emailVerified->id);
+        // Wardalnaqebilovewardilovewardi Hi Ibraheem Ward Was Here Get push i love ward i love ali i love playing football i love my mom 
+        return response()->json([
+            'message' => 'User has been created successfully',
+            'token' => $token,
+            'user' => $user
+        ], 201);
+    }
+
+    public function login(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|max:254',
+            'password' => 'required|string'
+        ]);
+
+        $user = User::query()->where('email', $validated['email'])->first();
+
+        if (!$user || !Hash::check($validated['password'], $user->password)) {
+            return response()->json(['message' => 'Bad credentials.'], 401);
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        $user->update(['last_login_at' => now()]);
+
+        return response()->json([
+            'message' => 'Login successful',
+            'user' => $user,
+            'token' => $token
+        ], 200);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json(['message' => 'Logged out succesfully']);
     }
 }

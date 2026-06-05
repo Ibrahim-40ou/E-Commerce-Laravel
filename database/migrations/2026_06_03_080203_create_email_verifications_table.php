@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('code', 6);  
             $table->timestamp('expires_at');
             $table->boolean('is_verified')->default(false);
+            $table->unsignedSmallInteger('attempts')->default(0);
+            $table->timestamp('email_verified_at')->nullable();
             $table->timestamps();
         });
     }

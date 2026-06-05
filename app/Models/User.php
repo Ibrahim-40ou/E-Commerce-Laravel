@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Override;
+
+use function PHPUnit\Framework\isNull;
 
 class User extends Authenticatable
 {
@@ -36,5 +38,16 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    #[Override]
+    public function toArray()
+    {
+        $array = parent::toArray();
+
+        if (is_null($this->deleted_at)) {
+            unset($array['deleted_at']);
+        }
+        return $array;
     }
 }
