@@ -41,7 +41,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/') . '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -60,6 +60,17 @@ return [
             'report' => false,
         ],
 
+        'r2' => [
+            'driver'                  => 's3',
+            'key'                     => env('CLOUDFLARE_R2_ACCESS_KEY_ID'),
+            'secret'                  => env('CLOUDFLARE_R2_SECRET_ACCESS_KEY'),
+            'region'                  => env('CLOUDFLARE_R2_REGION', 'auto'),
+            'bucket'                  => env('CLOUDFLARE_R2_BUCKET'),
+            'endpoint'                => env('CLOUDFLARE_R2_ENDPOINT'),
+            'use_path_style_endpoint' => true,
+            'url'                     => env('CLOUDFLARE_R2_URL'),
+            'visibility'              => 'public',
+        ],
     ],
 
     /*

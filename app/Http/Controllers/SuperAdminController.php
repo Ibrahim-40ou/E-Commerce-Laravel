@@ -52,10 +52,26 @@ class SuperAdminController extends Controller
         return response()->json(['users' => [$users], 200]);
     }
 
-    public function show(User $user)
+    public function showUser(User $user)
     {
         return response()->json([
             'user' => $user,
         ], 200);
+    }
+
+    public function updateUser(Request $request, User $user)
+    {
+        $validated = $request->validate(
+            [
+                'name' => 'sometimes|string',
+                'avatar_url' => 'sometimes|string',
+                'phone_number' => [
+                    'required',
+                    'string',
+                    'regex:/^(964|0)?7[5789]\d{8}$/',
+                    'max:14'
+                ],
+            ]
+        );
     }
 }
