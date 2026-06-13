@@ -61,18 +61,18 @@ class SuperAdminController extends Controller
 
     public function updateUser(Request $request, User $user)
     {
-        $validated = $request->validate(
-            [
-                'name' => 'sometimes|string',
-                'avatar_url' => 'sometimes|string',
-                'email'=> 'sometimes|email|unique:users,email|max:254',
-                'phone_number' => [
-                    'required',
-                    'string',
-                    'regex:/^(964|0)?7[5789]\d{8}$/',
-                    'max:14'
-                ],
-            ]
-        );
+        $validated = $request->validate([
+            'name' => 'sometimes|string',
+            'avatar' => 'sometimes|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'email' => 'sometimes|email|unique:users,email',
+            'phone_number' => [
+                'sometimes',
+                'string',
+                'regex:/^(964|0)?7[5789]\d{8}$/',
+                'max:14'
+            ],
+        ]);
+
+        
     }
 }
