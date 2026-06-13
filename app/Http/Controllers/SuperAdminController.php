@@ -65,6 +65,7 @@ class SuperAdminController extends Controller
             [
                 'name' => 'sometimes|string',
                 'avatar_url' => 'sometimes|string',
+                'email'=> 'sometimes|email|unique:users,email|max:254',
                 'phone_number' => [
                     'required',
                     'string',

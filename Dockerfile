@@ -31,7 +31,7 @@ RUN composer install --no-dev --optimize-autoloader
 COPY docker/nginx.conf /etc/nginx/sites-enabled/default
 
 # Set permissions
-RUN chown -R www-data:storage /var/www/storage
+RUN chown -R www-data:www-data /var/www/storage
 RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 # Expose port
