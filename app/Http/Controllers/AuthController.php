@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\SendOTPMail;
 use App\Models\EmailVerification;
 use App\Models\User;
+use App\Traits\NormalizeIraqiPhone;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,17 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    private function normalizeIraqiPhone(string $phone): string
-    {
-        if (str_starts_with($phone, '964')) {
-            $phone = substr($phone, 3);
-        }
-        if (str_starts_with($phone, '0')) {
-            $phone = substr($phone, 1);
-        }
 
-        return '964' . $phone;
-    }
+    use NormalizeIraqiPhone;
 
     public function sendOTP(Request $request)
     {
