@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CreateUserRequest;
 use App\Mail\SendOTPMail;
 use App\Models\EmailVerification;
 use App\Models\User;
@@ -102,19 +103,9 @@ class AuthController extends Controller
         return response()->json(['message' => 'Email verified successfully. You can now proceed to registration.'], 200);
     }
 
-    public function register(Request $request)
+    public function register(CreateUserRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email|max:254',
-            'phone_number' => [
-                'required',
-                'string',
-                'regex:/^(964|0)?7[5789]\d{8}$/',
-                'max:14'
-            ],
-            'password' => 'required|string|confirmed|min:8|max:128'
-        ]);
+        $validated = $request->validated();
 
         $emailVerified = EmailVerification::query()->where('email', $validated['email'])->where('is_verified', true)->first();
 
