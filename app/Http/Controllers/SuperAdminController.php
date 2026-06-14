@@ -5,10 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Traits\NormalizeIraqiPhone;
 use Illuminate\Http\Request;
-use Pest\Plugins\Tia\Storage;
-
-// CRUD on admins
-// CRUD on users
+use Illuminate\Support\Facades\Storage;
 
 class SuperAdminController extends Controller
 {
@@ -31,8 +28,8 @@ class SuperAdminController extends Controller
         $user = User::query()->create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'phone_number' => $validated['phone_number'],
-            'password' => $validated['password'],
+            'phone_number' => $this->normalizeIraqiPhone($validated['phone_number']),
+            'password' => bcrypt($validated['password']),
             'email_verified_at' => now(),
             'last_login_at' => now(),
         ]);
@@ -48,9 +45,9 @@ class SuperAdminController extends Controller
 
     public function indexUsers(Request $request)
     {
-        $users = User::all();
+        $users = User::paginate($this->perPage($request));
 
-        return response()->json(['users' => [$users], 200]);
+        return response()->json($users, 200);
     }
 
     public function showUser(User $user)
@@ -65,7 +62,7 @@ class SuperAdminController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string',
             'avatar' => 'sometimes|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'email' => 'sometimes|email|unique:users,email',
+            'email' => 'sometimes|email|unique:users,email,' . $user->id,
             'phone_number' => [
                 'sometimes',
                 'string',
@@ -82,13 +79,27 @@ class SuperAdminController extends Controller
             $path = $request->file('avatar')->store('avatars', 'r2');
             $validated['avatar_url'] = Storage::disk('r2')->url($path);
         }
-        unset($validated['avatar']);
 
+        unset($validated['avatar']);
+        if (isset($validated['phone_number'])) {
+            $validated['phone_number'] = $this->normalizeIraqiPhone($validated['phone_number']);
+        }
         $user->update($validated);
 
         return response()->json([
             'message' => 'User updated successfully',
             'user'    => $user->fresh(),
         ]);
+    }
+
+    public function deleteUser(Request $request, User $user)
+    {
+        if ($request->user()->id === $user->id) {
+            return response()->json(['message' => 'You cannot delete your own account.'], 403);
+        }
+        $user->tokens()->delete();
+        $user->delete();
+
+        return response()->json(['message' => 'User deleted successfully.'], 200);
     }
 }
