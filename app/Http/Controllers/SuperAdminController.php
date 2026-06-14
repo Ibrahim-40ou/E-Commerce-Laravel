@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Traits\NormalizeIraqiPhone;
 use Illuminate\Http\Request;
+use Pest\Plugins\Tia\Storage;
 
 // CRUD on admins
 // CRUD on users
@@ -73,6 +74,21 @@ class SuperAdminController extends Controller
             ],
         ]);
 
-        
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar_url) {
+                $oldPath = str_replace(config('filesystems.disks.r2.url') . '/', '', $user->avatar_url);
+                Storage::disk('r2')->delete($oldPath);
+            }
+            $path = $request->file('avatar')->store('avatars', 'r2');
+            $validated['avatar_url'] = Storage::disk('r2')->url($path);
+        }
+        unset($validated['avatar']);
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'User updated successfully',
+            'user'    => $user->fresh(),
+        ]);
     }
 }
