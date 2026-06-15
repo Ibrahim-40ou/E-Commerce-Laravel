@@ -10,15 +10,18 @@ use App\Traits\NormalizeIraqiPhone;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
+use Random\RandomException;
 
 class AuthController extends Controller
 {
 
     use NormalizeIraqiPhone;
 
+    /**
+     * @throws RandomException
+     */
     public function sendOTP(Request $request)
     {
         $validated = $request->validate([
@@ -48,7 +51,6 @@ class AuthController extends Controller
 
             return response()->json(['message' => 'Verification code has been sent to your email address'], 201);
         } catch (Exception $e) {
-
             return response()->json([
                 'message' => 'Failed to deliver verification email. Please try again later.',
                 'error' => $e->getMessage()
@@ -83,11 +85,11 @@ class AuthController extends Controller
             $verificationRecord->update(['is_verified' => true]);
             $verificationRecord->update(['email_verified_at' => now()]);
 
-            return response()->json(['message' => 'Email verified successfully. You can now proceed to registration.'], 200);
+            return response()->json(['message' => 'Email verified successfully. You can now proceed to registration.']);
         }
 
         if ($verificationRecord->code !== $validated['code']) {
-            $verificationRecord->increment('attempts', 1);
+            $verificationRecord->increment('attempts');
 
             if ($verificationRecord->fresh()->attempts >= 5) {
                 EmailVerification::destroy($verificationRecord->id);
@@ -100,14 +102,17 @@ class AuthController extends Controller
         $verificationRecord->update(['is_verified' => true]);
         $verificationRecord->update(['email_verified_at' => now()]);
 
-        return response()->json(['message' => 'Email verified successfully. You can now proceed to registration.'], 200);
+        return response()->json(['message' => 'Email verified successfully. You can now proceed to registration.']);
     }
 
     public function register(CreateUserRequest $request)
     {
         $validated = $request->validated();
 
-        $emailVerified = EmailVerification::query()->where('email', $validated['email'])->where('is_verified', true)->first();
+        $emailVerified = EmailVerification::query()->where('email', $validated['email'])->where(
+            'is_verified',
+            true
+        )->first();
 
         if (!$emailVerified) {
             throw ValidationException::withMessages(
@@ -139,7 +144,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         EmailVerification::destroy($emailVerified->id);
-        // Wardalnaqebilovewardilovewardi Hi Ibraheem Ward Was Here Get push i love ward i love ali i love playing football i love my mom 
+        // Wardalnaqebilovewardilovewardi Hi Ibraheem Ward Was Here Get push i love ward i love ali i love playing football i love my mom
         return response()->json([
             'message' => 'User has been created successfully',
             'token' => $token,
@@ -168,7 +173,7 @@ class AuthController extends Controller
             'message' => 'Login successful',
             'user' => $user,
             'token' => $token
-        ], 200);
+        ]);
     }
 
     public function logout(Request $request)
