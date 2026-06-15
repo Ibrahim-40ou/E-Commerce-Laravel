@@ -14,7 +14,6 @@ class SuperAdminController extends Controller
 {
     use NormalizeIraqiPhone;
 
-
     private function createAccount(array $validated, string $role): User
     {
         return User::query()->create(

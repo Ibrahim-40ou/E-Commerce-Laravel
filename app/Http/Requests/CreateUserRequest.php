@@ -16,7 +16,7 @@ class CreateUserRequest extends FormRequest
         return [
             'name'         => 'required|string|max:255',
             'email'        => 'required|email|unique:users,email|max:254',
-            'phone_number' => ['required', 'string', 'regex:/^(964|0)?7[5789]\d{8}$/', 'max:14'],
+            'phone_number' => ['required', 'string', 'unique:users,phone_number','regex:/^(964|0)?7[5789]\d{8}$/', 'max:14'],
             'password'     => 'required|string|confirmed|min:8|max:128'
         ];
     }

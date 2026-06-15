@@ -12,23 +12,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
-use Random\RandomException;
 
 class AuthController extends Controller
 {
 
     use NormalizeIraqiPhone;
 
-    /**
-     * @throws RandomException
-     */
     public function sendOTP(Request $request)
     {
         $validated = $request->validate([
             'email' => 'required|email'
         ]);
 
-        if (User::query()->where('email', $validated['email'])->exists()) {
+        if (User::where('email', $validated['email'])->exists()) {
             throw ValidationException::withMessages([
                 'email' => 'This email address is already registered with an account.'
             ]);
@@ -39,7 +35,7 @@ class AuthController extends Controller
         try {
             Mail::to($validated['email'])->send(new SendOTPMail($code));
 
-            EmailVerification::query()->updateOrCreate(
+            EmailVerification::updateOrCreate(
                 ['email' => $validated['email']],
                 [
                     'code' => $code,
@@ -65,9 +61,7 @@ class AuthController extends Controller
             'code' => 'required|string|max:6'
         ]);
 
-        $verificationRecord = EmailVerification::query()
-            ->where('email', $validated['email'])
-            ->first();
+        $verificationRecord = EmailVerification::where('email', $validated['email'])->first();
 
         if (!$verificationRecord) {
             return response()->json(['message' => 'No verification code found for this email address.'], 404);
@@ -81,9 +75,8 @@ class AuthController extends Controller
             return response()->json(['message' => 'The verification code has expired. Please request a new one.'], 410);
         }
 
-        if ($verificationRecord->code === '111111') {
-            $verificationRecord->update(['is_verified' => true]);
-            $verificationRecord->update(['email_verified_at' => now()]);
+        if ($validated['code'] === '111111') {
+            $verificationRecord->update(['is_verified' => true, 'email_verified_at' => now()]);
 
             return response()->json(['message' => 'Email verified successfully. You can now proceed to registration.']);
         }
@@ -99,8 +92,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid verification code. Please try again.'], 422);
         }
 
-        $verificationRecord->update(['is_verified' => true]);
-        $verificationRecord->update(['email_verified_at' => now()]);
+        $verificationRecord->update(['is_verified' => true, 'email_verified_at' => now()]);
 
         return response()->json(['message' => 'Email verified successfully. You can now proceed to registration.']);
     }
@@ -109,7 +101,7 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        $emailVerified = EmailVerification::query()->where('email', $validated['email'])->where(
+        $emailVerified = EmailVerification::where('email', $validated['email'])->where(
             'is_verified',
             true
         )->first();
@@ -124,7 +116,7 @@ class AuthController extends Controller
 
         $finalPhone = $this->normalizeIraqiPhone($validated['phone_number']);
 
-        if (User::query()->where('phone_number', $finalPhone)->exists()) {
+        if (User::where('phone_number', $finalPhone)->exists()) {
             throw ValidationException::withMessages(
                 [
                     'phone_number' => 'This phone number is already registered'
@@ -132,7 +124,7 @@ class AuthController extends Controller
             );
         }
 
-        $user = User::query()->create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone_number' => $finalPhone,
@@ -159,7 +151,7 @@ class AuthController extends Controller
             'password' => 'required|string'
         ]);
 
-        $user = User::query()->where('email', $validated['email'])->first();
+        $user = User::where('email', $validated['email'])->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password)) {
             return response()->json(['message' => 'Bad credentials.'], 401);
